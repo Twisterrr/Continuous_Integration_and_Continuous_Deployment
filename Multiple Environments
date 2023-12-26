@@ -1,0 +1,63 @@
+image: node:6    # specify your Docker image here
+
+pipelines:
+  branches: # Automated triggers on commits to branches
+    master: # -- When committing to master branch
+    - step:
+        deployment: production
+        name: Deploy src
+        script:
+            - 'echo " Start : Deploying to Production environment"'
+            - mkdir -p ~/.ssh
+            - ssh-keyscan -t rsa $HOSTNAME > my_known_hosts
+            - cat my_known_hosts >> ~/.ssh/knows_hosts
+            - rm  my_known_hosts
+            - umask 077 ; echo $SSHKEY_PROD | base64 --decode -i > ~/.ssh/id_rsa
+            - ssh -i ~/.ssh/id_rsa -vv $USER@$HOSTNAME -p $PORT_PROD "cd $PATH_PROJECT && git fetch && git reset --hard HEAD && git checkout master && git pull"
+            - 'echo " Finish : Deploying to Production environment "'
+    - step:
+          name: Build release
+          script:
+              - 'echo " Start : Install Project on PROD"'
+              - mkdir -p ~/.ssh
+              - ssh-keyscan -t rsa $HOSTNAME > my_known_hosts
+              - cat my_known_hosts >> ~/.ssh/knows_hosts
+              - rm  my_known_hosts
+              - umask 077 ; echo $SSHKEY_PROD | base64 --decode -i > ~/.ssh/id_rsa
+              - ssh -i ~/.ssh/id_rsa -vv $USER@$HOSTNAME -p $PORT_PROD "cd $PATH_PROJECT && cp -R release/* deploy/ && chmod -R 777 deploy/config.sh "
+              - 'echo " Finish : Install Project in PROD "'
+
+    pprod: # -- When committing to release branch
+    - step:
+        deployment: pprod
+        name: Deploy src
+        script:
+        - 'echo " Start : Deploying to Staging environment PPROD"'
+        - mkdir -p ~/.ssh
+        - ssh-keyscan -t rsa $HOSTNAME > my_known_hosts
+        - cat my_known_hosts >> ~/.ssh/knows_hosts
+        - rm  my_known_hosts
+        - umask 077 ; echo $SSHKEY_PPROD | base64 --decode -i > ~/.ssh/id_rsa
+        - ssh -i ~/.ssh/id_rsa -vv $USER@$HOSTNAME -p $PORT_PPROD "cd $PATH_PROJECT && git fetch && git reset --hard HEAD && git checkout pprod && git pull"
+        - 'echo " Finish : Deploying to Staging environment PPROD "'
+    - step:
+        name: Build release
+        script:
+        - 'echo " Start : Install Project on PPROD"'
+        - mkdir -p ~/.ssh
+        - ssh-keyscan -t rsa $HOSTNAME > my_known_hosts
+        - cat my_known_hosts >> ~/.ssh/knows_hosts
+        - rm  my_known_hosts
+        - umask 077 ; echo $SSHKEY_PPROD | base64 --decode -i > ~/.ssh/id_rsa
+        - ssh -i ~/.ssh/id_rsa -vv $USER@$HOSTNAME -p $PORT_PPROD "cd $PATH_PROJECT && cp -R release/* deploy/ && chmod -R 777 deploy/config.sh "
+        - 'echo " Finish : Install Project on PPROD "'
+    - step:
+        name: TestAuto
+        script:
+        - mkdir -p ~/.ssh
+        - ssh-keyscan -t rsa $HOSTNAME > my_known_hosts
+        - cat my_known_hosts >> ~/.ssh/knows_hosts
+        - rm  my_known_hosts
+        - umask 077 ; echo $SSHKEY_TEST_CENTOS | base64 --decode -i > ~/.ssh/id_rsa
+        - ssh -i ~/.ssh/id_rsa -vv $USER_TEST_CENTOS@$HOSTNAME -p $PORT_TEST_CENTOS "bash start_test_series.sh"
+        - 'echo "the results are accessible in the VM"'
