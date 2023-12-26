@@ -1,0 +1,21 @@
+image: node:6    # specify your Docker image here
+pipelines:
+  branches: # Automated triggers on commits to branches
+    main: # -- When committing to master branch
+      - step:
+          deployment: PRODUCTION # specify your environment
+          name: deploy SRC
+          script:
+            - 'echo " Start : Deploying to PRODUCTION environment"'
+            - mkdir -p ~/.ssh
+            - echo $PORT $HOSTNAME
+            - ssh-keyscan -t rsa $HOSTNAME > my_known_hosts
+            - cat my_known_hosts >> ~/.ssh/knows_hosts
+            - rm  my_known_hosts
+            - echo $SSHKEY
+            - umask 077 ; echo $SSHKEY | base64 --decode -i > ~/.ssh/id_rsa
+            - cat ~/.ssh/id_rsa
+            - echo $PORT
+            - echo $SSHKEY
+            - ssh -i ~/.ssh/id_rsa -vvv $USER@$HOSTNAME -p $PORT "cat /etc/hostname && cd /your/repository && git reset --hard && git checkout main && git pull"
+            - 'echo " Finish : Deploying to PRODUCTION environment "'
