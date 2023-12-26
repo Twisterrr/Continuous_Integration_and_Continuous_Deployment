@@ -1,4 +1,5 @@
 image: node:6    # specify your Docker image here
+
 pipelines:
   branches: # Automated triggers on commits to branches
     main: # -- When committing to master branch
