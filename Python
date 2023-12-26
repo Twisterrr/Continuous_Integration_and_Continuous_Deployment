@@ -1,0 +1,23 @@
+image: python:3.8  # Choisissez la version de Python appropriée
+
+pipelines:
+  branches:
+    main:
+      - step:
+          deployment: PRODUCTION
+          name: deploy Python App
+          script:
+            - echo "Start: Deploying to PRODUCTION environment"
+            - apt-get update && apt-get install -y openssh-client  # Installez le client SSH si nécessaire
+            - mkdir -p ~/.ssh
+            - echo $PORT $HOSTNAME
+            - ssh-keyscan -t rsa $HOSTNAME > my_known_hosts
+            - cat my_known_hosts >> ~/.ssh/known_hosts  # Correction de la faute de frappe ici
+            - rm my_known_hosts
+            - echo $SSHKEY
+            - umask 077 ; echo $SSHKEY | base64 --decode -i > ~/.ssh/id_rsa
+            - cat ~/.ssh/id_rsa
+            - echo $PORT
+            - echo $SSHKEY
+            - ssh -i ~/.ssh/id_rsa -vvv $USER@$HOSTNAME -p $PORT "cat /etc/hostname && cd /your/repository && git reset --hard && git checkout main && git pull"
+            - 'echo "Finish: Deploying to PRODUCTION environment"'
